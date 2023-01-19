@@ -1,0 +1,16 @@
+  180  export FLASK_APP=__init__
+  181  flask run
+  182  export FLASK_APP=app
+  183  flask run
+  184  export FLASK_APP=__init__
+  185  flask run
+  186  export FLASK_APP=app
+  187  flask run
+  188  export FLASK_APP=__init__
+  189  flask run
+  190  histor >> hist.txt
+  191  history >> hist.txt
+  192  export FLASK_APP=__init__.py
+  193  flask run
+  194  export FLASK_APP=app.py
+  195  flask run
