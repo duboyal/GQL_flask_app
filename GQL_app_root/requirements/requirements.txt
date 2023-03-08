@@ -3,6 +3,8 @@ Flask-SQLAlchemy
 ariadne
 psycopg2 #prob need binary
 flask-graphql>=2.0.1
+selenium
+bs4
 
 #pip install --upgrade -r requirements/requirements.txt 
 #run `pip install -r requirements/requirements.txt` from root directory
