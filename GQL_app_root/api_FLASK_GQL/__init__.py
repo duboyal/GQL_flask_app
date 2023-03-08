@@ -13,16 +13,11 @@ from ariadne.constants import PLAYGROUND_HTML
 
 app = Flask(__name__) #basically boiler plate our instance of flask
 
-
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://facpyhlx:HbI0qMR5DTPgmWMP4s5cvhj9H0Im0g_H@baasu.db.elephantsql.com/facpyhlx"
-# app.config["SQLALCHEMY_DATABASE_URI"] = "postgres://facpyhlx:HbI0qMR5DTPgmWMP4s5cvhj9H0Im0g_H@baasu.db.elephantsql.com/facpyhlx"
-app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
-# ^^ok those need to be set before 
 
+app.config["SQLALCHEMY_TRACK_MODIFICATION"] = False
 
 db = SQLAlchemy(app) # igues this is here and then  gets imported. but is that design?
-
-
 
 
 
