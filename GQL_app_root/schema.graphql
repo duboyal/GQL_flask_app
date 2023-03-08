@@ -29,6 +29,11 @@ type Query {
 }
 
 # can i pout a somment here 
+input PostInput {
+  title: String!
+  description: String!
+  created_at: String
+}
 
 type Mutation { 
 
@@ -37,6 +42,14 @@ type Mutation {
         description: String!
         created_at: String
         ): PostResult!
+
+    createMultPost(
+            posts: [PostInput!]!
+        ): PostsResult!
+        
+    # createMultPost(
+    #     posts: [Dict!]!
+    #     ): [Dict!] #[PostResult!]!
 
     updatePost (
         id: ID!
