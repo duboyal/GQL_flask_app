@@ -3,6 +3,7 @@
 # basically database models go here 
 
 from api_FLASK_GQL import db #SHOULD WORK
+from datetime import datetime
 
 # from app import db
 
@@ -14,7 +15,16 @@ from api_FLASK_GQL import db #SHOULD WORK
 # db = SQLAlchemy(app) # igues this is here and then  gets imported. but is that design?
 
 class Post(db.Model): #inherits from db.Model, and db in general, it inherits from sql alchemy class 
-    id = db.Column(db.Integer, primary_key=True)
+
+
+    # __tablename__ = 'posts'
+
+    # id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    # title = db.Column(db.String(100), nullable=False)
+    # description = db.Column(db.String(255), nullable=False)
+    # created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=True)
     
     title = db.Column(db.String)
     description = db.Column(db.String)
@@ -25,8 +35,10 @@ class Post(db.Model): #inherits from db.Model, and db in general, it inherits fr
             "id" : self.id,
             "title" : self.title,
             "description" : self.description,
-            "created_at" : str(self.created_at.strftime('%d-$m-%'))
+            "created_at" : str(self.created_at.strftime('%m-%d-%Y'))
 
         }
+    
 
-# I guess we can have more classes and it would be like more tables?
+
+#  we can have more classes and it would be like more tables
