@@ -10,6 +10,8 @@ services:
       - NAME=World
     depends_on:
       - selenium
+    networks:
+      - app-network
 
   selenium:
     image: seleniarm/standalone-chromium:latest
@@ -22,3 +24,9 @@ services:
         limits:
           cpus: '0.5'
           memory: 512M
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

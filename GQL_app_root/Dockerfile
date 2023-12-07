@@ -23,6 +23,12 @@ EXPOSE 8000
 # Define environment variable
 ENV NAME World
 
+# Typically, Flask applications run on port 5000 by default
+
+#---------
+# Set environment variable for Flask port
+ENV FLASK_RUN_PORT=8000
+
 # Run the wait-for-selenium script, then app.py when the container launches
 CMD ["/wait-for-selenium.sh", "selenium:4444", "python", "./app.py"]
 

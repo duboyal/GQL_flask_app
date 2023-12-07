@@ -1,3 +1,198 @@
+import os
+import sys
+import json
+import time
+import requests
+from datetime import datetime
+from flask import Flask, request, jsonify
+from bs4 import BeautifulSoup
+from api_FLASK_GQL import app, db, models
+from api_FLASK_GQL.models import Post
+from api_FLASK_GQL.queries import listPosts_resolver, getPost_resolver
+from api_FLASK_GQL.mutations import (
+    create_post_resolver,
+    update_post_resolver,
+    delete_post_resolver,
+    create_mult_post_resolver,
+)
+from ariadne import (
+    load_schema_from_path,
+    make_executable_schema,
+    graphql_sync,
+    snake_case_fallback_resolvers,
+    ObjectType,
+)
+from ariadne.explorer import ExplorerPlayground
+
+from ariadne import QueryType, gql, make_executable_schema
+from ariadne.asgi import GraphQL
+
+# from ariadne.constants import PLAYGROUND_HTML
+# from ariadne import graphql_playground
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# GraphQL schema setup
+type_defs = load_schema_from_path("schema.graphql")
+query = ObjectType("Query")
+mutation = ObjectType("Mutation")
+
+query.set_field("listPosts", listPosts_resolver)
+query.set_field("getPost", getPost_resolver)
+
+mutation.set_field("createMultPost", create_mult_post_resolver)
+mutation.set_field("createPost", create_post_resolver)
+mutation.set_field("updatePost", update_post_resolver)
+mutation.set_field("deletePost", delete_post_resolver)
+
+schema = make_executable_schema(
+    type_defs, query, mutation, snake_case_fallback_resolvers
+)
+from flask import Response
+
+from ariadne.explorer import ExplorerApollo
+
+
+# @app.route("/graphql", methods=["GET"])
+# def playground():
+#     return graphql_playground()
+
+
+# got to figure out this playground
+@app.route("/graphql", methods=["GET"])
+def graphql_playground():
+    # return "Test"
+
+    return ExplorerApollo(title="Ariadne GraphQL")  # schema=schema)
+
+
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     # Generate HTML for the playground
+#     playground_html = ExplorerPlayground().render()
+#     # Create a response object with the HTML content
+#     return Response(playground_html, mimetype="text/html")
+
+
+@app.route("/graphql", methods=["POST"])
+def graphql_server():
+    data = request.get_json()
+    success, result = graphql_sync(schema, data, context_value=request, debug=app.debug)
+    print("result", result)
+    status_code = 200 if success else 400
+    return jsonify(result), status_code
+
+
+@app.route("/second")
+def helloGraphQL2():
+    return "yaaay2 ---------- my first gql"
+
+
+# Scraping function
+def return_posts():
+    try:
+        print("-------am i here")
+        url = "https://newyork.craigslist.org/search/act"
+        response = requests.get(url)
+        print("\n--------response")
+        print(response.text)
+        print("\n-------- end here --------\n")
+        soup = BeautifulSoup(response.text, "html.parser")
+        # posts_html = soup.find_all("a", {"class": "result-title hdrlnk"})
+        posts_html = soup.find_all("a")  # , {"class": "result-title hdrlnk"})
+
+        print("====hey yo yo====")
+        print(type(posts_html))
+        print(dir(posts_html))
+        # print(posts_html.count())
+        # print("***** DIR *****")
+        # print(dir(soup))
+
+        def clean(str):
+            return str.replace("\n", "").replace("$0", "").replace(" ", "")
+
+        post_list = [
+            {"title": clean(item.get_text()), "description": item.get("href")}
+            # item.get_text()
+            for item in posts_html
+        ]
+
+        # print("\n\n+++post_list\n\n")
+        # for item in post_list:
+        #     print(item["title"] + "\n------------------\n")
+
+        return post_list
+
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return []
+
+
+@app.route("/scrape-craigslist", methods=["GET"])
+def scrape_craigslist():
+    try:
+        # Scrape Craigslist
+        posts_list = return_posts()
+
+        print("-----0000000000000000-----")
+        # print(posts_list)
+
+        # Add each post to the database
+        for post in posts_list:
+            print(post)
+            new_post = Post(
+                title=post["title"],
+                description=post["description"],
+                created_at=datetime.now(),
+            )
+            db.session.add(new_post)
+        db.session.commit()
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Posts added to database",
+                    "posts_list": posts_list,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# Main execution...
+if __name__ == "__main__":
+    # app.run(debug=True)  # You can add 'debug=True' for development purposes
+    # app = GraphQL(schema, debug=True)
+    app.run(debug=True, host="0.0.0.0", port=8000)
+
+
+## Helper function to construct query
+# def return_query(posts_list):
+#     query_str = "mutation { createMultPost(posts: ["
+#     for post in posts_list:
+#         post_str = f'{{ title: "{post["title"]}", description: "{post["description"]}", created_at: "2022-03-02" }},'
+#         query_str += post_str
+#     query_str = query_str.rstrip(",") + "] ) {posts {title description created_at}}}"
+#     return query_str
+
+
+# # Main execution
+# if __name__ == "__main__":
+#     posts_list = return_posts()
+#     query = return_query(posts_list)
+#     post_data = {"query": query, "variables": None}
+
+#     with app.test_request_context("/graphql", method="POST", json=post_data):
+#         response = app.view_functions["graphql_server"]()
+#         print("Response:", response)
+
+
+'''
+
 import os, sys
 
 #'/Users/ali/Desktop/scraping/myenv1/lib/python3.7/site-packages'
@@ -59,6 +254,7 @@ chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
 # Point to the Selenium Grid instead of local ChromeDriver
+print("do we get here ali")
 browser = webdriver.Remote(
     command_executor="http://selenium:4444/wd/hub", options=chrome_options
 )
@@ -88,34 +284,14 @@ mutation.set_field("deletePost", delete_post_resolver)
 type_defs = load_schema_from_path("schema.graphql")
 schema = make_executable_schema(
     type_defs, query, mutation, snake_case_fallback_resolvers
-)  # must aadd query
+)
 
 
 # ----- basically we only have these two routes in GQL!!!
 
 
-# from ariadne.wsgi import GraphQL
-
-# from flask_graphql import GraphQLView
-
 app = Flask(__name__)
 
-# app.add_url_rule("/graphql", view_func=GraphQL(schema, graphiql=True))
-
-# app.add_url_rule(
-#     "/graphql",
-#     view_func=GraphQLView.as_view(
-#         "graphql",
-#         schema=schema,
-#         graphiql=True,
-#     ),
-# )
-
-
-# GraphQL user interface
-# @app.route("/graphql", methods=["GET"])
-# def graphql_playground():
-#     return PLAYGROUND_HTML, 200
 
 from ariadne.explorer import ExplorerPlayground
 
@@ -125,30 +301,6 @@ def graphql_playground():
     # Return the ExplorerPlayground interface
     # Make sure to pass any required options to ExplorerPlayground if necessary
     return ExplorerPlayground(schema=schema)
-
-
-# -------------------------------------
-
-# from ariadne.explorer import ExplorerGraphiQL
-
-# app.add_url_rule(
-#     "/graphql",
-#     view_func=ExplorerGraphiQL.as_view(
-#         "graphql",
-#         schema=schema,
-#     ),
-# )
-# from ariadne.explorer import ExplorerPlayground
-
-# app.add_url_rule(
-#     "/graphql",
-#     view_func=ExplorerPlayground.as_view(
-#         "graphql",
-#         schema=schema,
-#     ),
-# )
-
-# -------------------------------------
 
 
 # haandle post queries
@@ -187,22 +339,44 @@ browser = webdriver.Remote(
 )
 
 
+# def return_posts():
+#     try:
+#         # Scrape the Craigslist site
+#         url = "https://newyork.craigslist.org/search/act"
+#         browser.get(url)
+#         sleep(3)
+#         soup = BeautifulSoup(browser.page_source, "html.parser")
+#         posts_html = soup.find_all("a", {"class": "titlestring"})
+
+#         post_list = [
+#             {"title": item.get_text(), "description": item.get("href")}
+#             for item in posts_html
+#         ]
+#         return post_list
+
+#     except Exception as e:
+#         print(f"Error occurred: {e}")
+#     finally:
+#         browser.quit()  # Close the browser session
+
+
 def return_posts():
-    # --------------tried from cl_module--
-    url = "https://newyork.craigslist.org/search/act#search=1~list~0~38"
-    # browser = webdriver.Chrome()
-    browser.get(url)
-    sleep(3)
-    soup = BeautifulSoup(browser.page_source, "html.parser")
-    # posts_html= soup.find_all('li', {'class': 'cl-search-result'})
-    posts_html = soup.find_all("a", {"class": "titlestring"})
-    post_list = []
-    for item in posts_html:
-        # print(item)
-        title = str(item).split(">")[-2].replace("</a", "")
-        description = str(item.get("href"))
-        post_list.append({"title": title, "description": description})
-    return post_list
+    try:
+        # Scrape the Craigslist site
+        url = "https://newyork.craigslist.org/search/act"
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        posts_html = soup.find_all("a", {"class": "result-title hdrlnk"})
+
+        post_list = [
+            {"title": item.get_text(), "description": item.get("href")}
+            for item in posts_html
+        ]
+        return post_list
+
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return []
 
 
 def return_query(posts_list):
@@ -245,3 +419,6 @@ with app.test_request_context("/graphql", method="POST", json=post_data):
 # status_code = response.status_code
 print(" -999- ")
 print(response)
+
+
+'''
