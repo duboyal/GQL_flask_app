@@ -1,3 +1,241 @@
+import requests
+from datetime import datetime
+from flask import jsonify
+from bs4 import BeautifulSoup
+from ariadne import (
+    load_schema_from_path,
+    make_executable_schema,
+    graphql_sync,
+    ObjectType,
+)
+from ariadne.explorer import ExplorerApollo
+
+# Import the create_app function and db object from the api_FLASK_GQL package
+from api_FLASK_GQL import create_app, db
+from api_FLASK_GQL.models import Post
+from api_FLASK_GQL.queries import listPosts_resolver, getPost_resolver
+from api_FLASK_GQL.mutations import (
+    create_post_resolver,
+    update_post_resolver,
+    delete_post_resolver,
+    create_mult_post_resolver,
+)
+
+# Create an instance of the Flask application
+app = create_app()
+
+# GraphQL schema setup
+type_defs = load_schema_from_path("schema.graphql")
+query = ObjectType("Query")
+mutation = ObjectType("Mutation")
+
+# Set resolvers for GraphQL queries and mutations
+query.set_field("listPosts", listPosts_resolver)
+query.set_field("getPost", getPost_resolver)
+
+mutation.set_field("createMultPost", create_mult_post_resolver)
+mutation.set_field("createPost", create_post_resolver)
+mutation.set_field("updatePost", update_post_resolver)
+mutation.set_field("deletePost", delete_post_resolver)
+
+# Make the GraphQL schema executable
+schema = make_executable_schema(type_defs, query, mutation)
+
+
+@app.route("/graphql", methods=["GET"])
+def graphql_playground():
+    # Return the GraphQL playground interface
+    return ExplorerApollo(title="Ariadne GraphQL")
+
+
+# @app.route("/graphql", methods=["POST"])
+# def graphql_server():
+#     # Execute GraphQL queries
+#     data = request.get_json()
+#     success, result = graphql_sync(schema, data, context_value=request, debug=app.debug)
+#     status_code = 200 if success else 400
+#     return jsonify(result), status_code
+
+
+@app.route("/scrape-craigslist", methods=["GET"])
+def scrape_craigslist():
+    # Scrape Craigslist and add the data to the database
+    try:
+        posts_list = return_posts()
+        for post in posts_list:
+            print(post)
+            new_post = Post(
+                title=post["title"],
+                description=post["description"],
+                created_at=datetime.now(),
+            )
+            print("-------0o0-------")
+            print(new_post)
+            db.session.add(new_post)
+            # db.session.commit()
+        db.session.commit()
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Posts added to database",
+                    "posts_list": posts_list,
+                }
+            ),
+            200,
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def return_posts():
+    # Function to scrape Craigslist
+    try:
+        url = "https://newyork.craigslist.org/search/act"
+        response = requests.get(url)
+        # print(response.text)
+        soup = BeautifulSoup(response.text, "html.parser")
+        posts_html = soup.find_all("a")  # , {"class": "result-title hdrlnk"})
+        # print("---------posts_html")
+        # print(posts_html)
+        # print("response.text")
+        # print(response.text)
+        post_list = [
+            {"title": clean(item.get_text()), "description": item.get("href")}
+            for item in posts_html
+        ]
+
+        return post_list
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return []
+
+
+def clean(text):
+    # Helper function to clean text
+    return text.replace("\n", "").replace("$0", "").replace(" ", "")
+
+
+if __name__ == "__main__":
+    # Run the Flask app
+    app.run(debug=True, host="0.0.0.0", port=8000)
+
+
+# import requests
+# from datetime import datetime
+# from flask import Flask, request, jsonify
+# from bs4 import BeautifulSoup
+# from flask_sqlalchemy import SQLAlchemy
+# from ariadne import (
+#     load_schema_from_path,
+#     make_executable_schema,
+#     graphql_sync,
+#     ObjectType,
+# )
+# from ariadne.explorer import ExplorerApollo
+# from api_FLASK_GQL
+# from api_FLASK_GQL.models import Post  # Update import based on your project structure
+# from api_FLASK_GQL.queries import listPosts_resolver, getPost_resolver
+# from api_FLASK_GQL.mutations import (
+#     create_post_resolver,
+#     update_post_resolver,
+#     delete_post_resolver,
+#     create_mult_post_resolver,
+# )
+
+# # Initialize Flask app
+# app = Flask(__name__)
+# app.config[
+#     "SQLALCHEMY_DATABASE_URI"
+# ] = "your_database_uri"  # Replace with your actual URI
+# app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# # Initialize SQLAlchemy
+# db = SQLAlchemy(app)
+
+# # GraphQL schema setup
+# type_defs = load_schema_from_path("schema.graphql")
+# query = ObjectType("Query")
+# mutation = ObjectType("Mutation")
+
+# query.set_field("listPosts", listPosts_resolver)
+# query.set_field("getPost", getPost_resolver)
+
+# mutation.set_field("createMultPost", create_mult_post_resolver)
+# mutation.set_field("createPost", create_post_resolver)
+# mutation.set_field("updatePost", update_post_resolver)
+# mutation.set_field("deletePost", delete_post_resolver)
+
+# schema = make_executable_schema(type_defs, query, mutation)
+
+
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     return ExplorerApollo(title="Ariadne GraphQL")
+
+
+# @app.route("/graphql", methods=["POST"])
+# def graphql_server():
+#     data = request.get_json()
+#     success, result = graphql_sync(schema, data, context_value=request, debug=app.debug)
+#     status_code = 200 if success else 400
+#     return jsonify(result), status_code
+
+
+# @app.route("/scrape-craigslist", methods=["GET"])
+# def scrape_craigslist():
+#     try:
+#         posts_list = return_posts()
+#         for post in posts_list:
+#             new_post = Post(
+#                 title=post["title"],
+#                 description=post["description"],
+#                 created_at=datetime.now(),
+#             )
+#             db.session.add(new_post)
+#         db.session.commit()
+#         return (
+#             jsonify(
+#                 {
+#                     "success": True,
+#                     "message": "Posts added to database",
+#                     "posts_list": posts_list,
+#                 }
+#             ),
+#             200,
+#         )
+#     except Exception as e:
+#         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# # Scraping function
+# def return_posts():
+#     try:
+#         url = "https://newyork.craigslist.org/search/act"
+#         response = requests.get(url)
+#         soup = BeautifulSoup(response.text, "html.parser")
+#         posts_html = soup.find_all("a")
+#         post_list = [
+#             {"title": clean(item.get_text()), "description": item.get("href")}
+#             for item in posts_html
+#         ]
+#         return post_list
+#     except Exception as e:
+#         print(f"Error occurred: {e}")
+#         return []
+
+
+# def clean(text):
+#     return text.replace("\n", "").replace("$0", "").replace(" ", "")
+
+
+# # Main execution
+# if __name__ == "__main__":
+#     db.create_all()  # Create database tables if they don't exist
+#     app.run(debug=True, host="0.0.0.0", port=8000)
+
+"""
 import os
 import sys
 import json
@@ -190,235 +428,4 @@ if __name__ == "__main__":
 #         response = app.view_functions["graphql_server"]()
 #         print("Response:", response)
 
-
-'''
-
-import os, sys
-
-#'/Users/ali/Desktop/scraping/myenv1/lib/python3.7/site-packages'
-sys.path.insert(
-    0, "/Users/ali/Desktop/scraping/myenv1/lib/python3.7/site-packages"
-)  # cool so this fixed it, I think it was looking for another place in the python path first .....
-# sys.path.insert(0, '/Users/ali/Desktop/scraping/myenv1/lib/python3.7')
-selenium_dir = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        "/Users/ali/Desktop/scraping/myenv1/lib/python3.7/site-packages/selenium/__init__.py",
-    )
-)
-sys.path.append(selenium_dir)
-sys.path.append(".")
-#'/Users/ali/Desktop/scraping/myenv1/lib/python3.7/site-packages'
-
-
-from api_FLASK_GQL import app, db
-from api_FLASK_GQL import models
-import json, sys
-
-# from flask_sqlalchemy import SQLAlchemy
-
-from flask import Flask
-
-from datetime import datetime
-from api_FLASK_GQL.models import Post
-
-from flask import request, jsonify
-from ariadne import (
-    load_schema_from_path,
-    make_executable_schema,
-    graphql_sync,
-    snake_case_fallback_resolvers,
-    ObjectType,
-)
-
-# from ariadne.constants import PLAYGROUND_HTML
-
-import random
-import time
-
-from bs4 import BeautifulSoup
-from time import sleep
-
-## import chromedriver_binary
-from selenium import webdriver
-
-# --------- trying ----------
-
-# from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-
-# Point to the Selenium Grid instead of local ChromeDriver
-print("do we get here ali")
-browser = webdriver.Remote(
-    command_executor="http://selenium:4444/wd/hub", options=chrome_options
-)
-# --------- trying ----------
-
-# -------resolvers in queries.py
-
-from api_FLASK_GQL.queries import listPosts_resolver, getPost_resolver
-from api_FLASK_GQL.mutations import (
-    create_post_resolver,
-    update_post_resolver,
-    delete_post_resolver,
-    create_mult_post_resolver,
-)
-
-query = ObjectType("Query")
-mutation = ObjectType("Mutation")
-
-query.set_field("listPosts", listPosts_resolver)
-query.set_field("getPost", getPost_resolver)
-
-mutation.set_field("createMultPost", create_mult_post_resolver)
-mutation.set_field("createPost", create_post_resolver)
-mutation.set_field("updatePost", update_post_resolver)
-mutation.set_field("deletePost", delete_post_resolver)
-
-type_defs = load_schema_from_path("schema.graphql")
-schema = make_executable_schema(
-    type_defs, query, mutation, snake_case_fallback_resolvers
-)
-
-
-# ----- basically we only have these two routes in GQL!!!
-
-
-app = Flask(__name__)
-
-
-from ariadne.explorer import ExplorerPlayground
-
-
-@app.route("/graphql", methods=["GET"])
-def graphql_playground():
-    # Return the ExplorerPlayground interface
-    # Make sure to pass any required options to ExplorerPlayground if necessary
-    return ExplorerPlayground(schema=schema)
-
-
-# haandle post queries
-@app.route("/graphql", methods=["POST"])
-def graphql_server():
-    # when you get the request back for /graphql Post which is tied to a mutaation prrobably from make execultable schema and graphql_sync
-
-    data = request.get_json()
-    success, result = graphql_sync(schema, data, context_value=request, debug=app.debug)
-
-    # currently the result from graphQLsync is messsed up
-    print("result")
-    print(result)
-    status_code = 200 if success else 400
-    return jsonify(result), status_code
-    # return jsonify(data),status_code
-
-
-@app.route("/second")
-def helloGraphQL2():
-    return "yaaay2 ---------- my first gql"
-
-
-# ------------------ this is either here ir in init, like if no database maade yet
-# current_date = datetime.today().date()
-# new_post = Post(title = "Post1", description = "TEST TEST TESTing", created_at = current_date)
-# with app.app_context():
-#     db.create_all()
-#     db.session.add(new_post) #basically i can probably just get rid of this line
-#     db.session.commit()
-# ------------driver code
-
-# Configure the remote WebDriver instance
-browser = webdriver.Remote(
-    command_executor="http://selenium:4444/wd/hub", options=chrome_options
-)
-
-
-# def return_posts():
-#     try:
-#         # Scrape the Craigslist site
-#         url = "https://newyork.craigslist.org/search/act"
-#         browser.get(url)
-#         sleep(3)
-#         soup = BeautifulSoup(browser.page_source, "html.parser")
-#         posts_html = soup.find_all("a", {"class": "titlestring"})
-
-#         post_list = [
-#             {"title": item.get_text(), "description": item.get("href")}
-#             for item in posts_html
-#         ]
-#         return post_list
-
-#     except Exception as e:
-#         print(f"Error occurred: {e}")
-#     finally:
-#         browser.quit()  # Close the browser session
-
-
-def return_posts():
-    try:
-        # Scrape the Craigslist site
-        url = "https://newyork.craigslist.org/search/act"
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        posts_html = soup.find_all("a", {"class": "result-title hdrlnk"})
-
-        post_list = [
-            {"title": item.get_text(), "description": item.get("href")}
-            for item in posts_html
-        ]
-        return post_list
-
-    except Exception as e:
-        print(f"Error occurred: {e}")
-        return []
-
-
-def return_query(posts_list):
-    """
-    take in a list of title and descrription
-    feed in list of craigslist post
-    and construct the query here
-    """
-
-    str_1 = "mutation { createMultPost(posts: ["
-    for i in range(0, len(posts_list)):
-        str0 = (
-            '{ title: " '
-            + posts_list[i]["title"]
-            + '", description: " '
-            + posts_list[i]["description"]
-            + '", created_at: "2022-03-02" },'
-        )
-        str_1 += str0
-    str_1 = str_1.strip(",")
-    str_1 = (
-        str_1 + "] ) {posts {title description created_at}}}"
-    )  # for some reason id is returning null here - {posts {id title description created_at}}}
-
-    return str_1
-
-
-posts_list = return_posts()
-query = return_query(posts_list)
-post_data = {"query": query, "variables": None}
-
-
-with app.test_request_context("/graphql", method="POST", json=post_data):
-    # this function call
-    response = app.view_functions["graphql_server"]()
-    print(response)
-
-# Access the response data
-# response_data = response.get_json() # NO because the response data is a tuple
-# status_code = response.status_code
-print(" -999- ")
-print(response)
-
-
-'''
+"""
