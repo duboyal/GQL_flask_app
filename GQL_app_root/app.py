@@ -1,6 +1,10 @@
 import requests
 from datetime import datetime
 from flask import jsonify
+
+from flask import Response
+from ariadne.explorer import ExplorerPlayground
+
 from bs4 import BeautifulSoup
 from ariadne import (
     load_schema_from_path,
@@ -42,10 +46,37 @@ mutation.set_field("deletePost", delete_post_resolver)
 schema = make_executable_schema(type_defs, query, mutation)
 
 
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     # Return the GraphQL playground interface
+#     return ExplorerApollo(title="Ariadne GraphQL")
+
+
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     # Create an instance of the ExplorerApollo and render it as HTML
+#     explorer = ExplorerApollo(title="Ariadne GraphQL")
+#     return Response(explorer.render(), mimetype="text/html")
+
+
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     # Return the Ariadne GraphQL playground
+#     return ExplorerPlayground().render_response()
+
+
+# @app.route("/graphql", methods=["GET"])
+# def graphql_playground():
+#     # Return the HTML for the Ariadne Explorer Playground directly
+#     playground_html = ExplorerPlayground().html()
+#     return Response(playground_html, mimetype="text/html")
+
+
 @app.route("/graphql", methods=["GET"])
 def graphql_playground():
-    # Return the GraphQL playground interface
-    return ExplorerApollo(title="Ariadne GraphQL")
+    # Use ExplorerPlayground and pass an argument '_' as the schema or a context string
+    playground_html = ExplorerPlayground().html("_")
+    return Response(playground_html, mimetype="text/html")
 
 
 # @app.route("/graphql", methods=["POST"])
@@ -60,17 +91,25 @@ def graphql_playground():
 @app.route("/scrape-craigslist", methods=["GET"])
 def scrape_craigslist():
     # Scrape Craigslist and add the data to the database
+    # one cool thing is that when we hit this get request its on the top
+    # like top request is the most recent
     try:
         posts_list = return_posts()
         for post in posts_list:
+
+            print("begining")
+
             print(post)
+            print("items from post")
+            print(post.items())
             new_post = Post(
                 title=post["title"],
                 description=post["description"],
                 created_at=datetime.now(),
             )
             print("-------0o0-------")
-            print(new_post)
+            print("hey")
+            print(dir(new_post))
             db.session.add(new_post)
             # db.session.commit()
         db.session.commit()
@@ -97,14 +136,20 @@ def return_posts():
         # print(response.text)
         soup = BeautifulSoup(response.text, "html.parser")
         posts_html = soup.find_all("a")  # , {"class": "result-title hdrlnk"})
-        # print("---------posts_html")
-        # print(posts_html)
-        # print("response.text")
-        # print(response.text)
+        print("------0-0-0-0----")
+        print("---------posts_html")
+        print(posts_html)
+        print("response.text")
+        print(response.text)
+
+        # basically here I could TRYYY to get the info out of "item" and stuff
         post_list = [
             {"title": clean(item.get_text()), "description": item.get("href")}
             for item in posts_html
         ]
+
+        # MAYBE HERE
+        # post_list = [{"item": item} for item in posts_html]
 
         return post_list
     except Exception as e:
