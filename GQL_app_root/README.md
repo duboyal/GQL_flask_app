@@ -12,4 +12,6 @@
 
 ## OK 
 
-### right now its a little broken because url field needs to be migrated over, or database just wiped, which is what im expecting, so I will comment out the database commit code for now 
+#### right now its a little broken because url field needs to be migrated over, or database just wiped, which is what im expecting, so I will comment out the database commit code for now .
+
+#### should do postgres  RDS eventually ? maybe?
