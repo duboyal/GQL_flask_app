@@ -80,32 +80,6 @@ schema = make_executable_schema(type_defs, query, mutation)
 # )
 
 
-# @app.route("/graphql", methods=["GET"])
-# def graphql_playground():
-#     # Return the GraphQL playground interface
-#     return ExplorerApollo(title="Ariadne GraphQL")
-
-
-# @app.route("/graphql", methods=["GET"])
-# def graphql_playground():
-#     # Create an instance of the ExplorerApollo and render it as HTML
-#     explorer = ExplorerApollo(title="Ariadne GraphQL")
-#     return Response(explorer.render(), mimetype="text/html")
-
-
-# @app.route("/graphql", methods=["GET"])
-# def graphql_playground():
-#     # Return the Ariadne GraphQL playground
-#     return ExplorerPlayground().render_response()
-
-
-# @app.route("/graphql", methods=["GET"])
-# def graphql_playground():
-#     # Return the HTML for the Ariadne Explorer Playground directly
-#     playground_html = ExplorerPlayground().html()
-#     return Response(playground_html, mimetype="text/html")
-
-
 @app.route("/graphql", methods=["GET"])
 def graphql_playground():
     # Use ExplorerPlayground and pass an argument '_' as the schema or a context string
@@ -130,28 +104,31 @@ def scrape_craigslist():
     try:
         posts_list = return_posts()
 
+        # TO REINTRODUCE THIS I NEED TO TEAR DOWN THE DATABASE
+
         # Everything below is going to need to
         # be changed and updated in to the schema
         # to have, tilte, description, url, datetime - 4 fields
 
-        for post in posts_list:
-            print("begining")
+        # COMMENTED OUT FOR NOW!
+        # for post in posts_list:
+        #     print("begining")
 
-            print(post)
-            print("items from post")
-            print(post.items())
-            new_post = Post(
-                title=post["title"],
-                description=post["description"],
-                url=post["url"],
-                created_at=datetime.now(),
-            )
-            print("-------0o0-------")
-            print("hey")
-            print(dir(new_post))
-            db.session.add(new_post)
-            # db.session.commit()
-        db.session.commit()
+        #     print(post)
+        #     print("items from post")
+        #     print(post.items())
+        #     new_post = Post(
+        #         title=post["title"],
+        #         description=post["description"],
+        #         url=post["url"],
+        #         created_at=datetime.now(),
+        #     )
+        #     print("-------0o0-------")
+        #     print("hey")
+        #     print(dir(new_post))
+        #     db.session.add(new_post)
+        #     # db.session.commit()
+        # db.session.commit()
 
         return (
             jsonify(
