@@ -17,16 +17,51 @@ services:
     image: seleniarm/standalone-chromium:latest
     ports:
       - "4444:4444"
-    volumes:
-      - /dev/shm:/dev/shm
+    shm_size: 2g  # Set the shared memory size to 2GB
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '1.0'  # Allocate more CPU
+          memory: 2G    # Allocate more memory
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+
+
+
+# version: '3.8'
+# services:
+#   web:
+#     build: .
+#     ports:
+#       - "8000:8000"
+#     volumes:
+#       - .:/usr/src/app
+#     environment:
+#       - NAME=World
+#     depends_on:
+#       - selenium
+#     networks:
+#       - app-network
+
+#   selenium:
+#     image: seleniarm/standalone-chromium:latest
+#     ports:
+#       - "4444:4444"
+#     volumes:
+#       - /dev/shm:/dev/shm
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 512M
+#     networks:
+#       - app-network
+
+# networks:
+#   app-network:
+#     driver: bridge

@@ -1,9 +1,34 @@
 import requests
 from datetime import datetime
 from flask import jsonify
+import re
 
 from flask import Response
 from ariadne.explorer import ExplorerPlayground
+
+
+# selly
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import (
+    DesiredCapabilities,
+)
+
+from selenium.webdriver.chrome.options import Options
+
+
+# Set up Chrome options
+# chrome_options = Options()
+# chrome_options.add_argument("--headless")  # Run in headless mode to save resources
+# chrome_options.add_argument("--no-sandbox")
+# chrome_options.add_argument("--disable-dev-shm-usage")
+# chrome_options.add_argument("--disable-gpu")  # Disable GPU to save resources
+# chrome_options.add_argument(
+#     "--remote-debugging-port=9222"
+# )  # Required for headless Chrome
+
 
 from bs4 import BeautifulSoup
 from ariadne import (
@@ -13,6 +38,7 @@ from ariadne import (
     ObjectType,
 )
 from ariadne.explorer import ExplorerApollo
+
 
 # Import the create_app function and db object from the api_FLASK_GQL package
 from api_FLASK_GQL import create_app, db
@@ -44,6 +70,14 @@ mutation.set_field("deletePost", delete_post_resolver)
 
 # Make the GraphQL schema executable
 schema = make_executable_schema(type_defs, query, mutation)
+
+# Connect to the Selenium server running in Docker
+# Connect to the Selenium server running in Docker
+
+# driver = webdriver.Remote(
+#     command_executor="http://selenium:4444",  # Replace with your actual Selenium server URL
+#     options=chrome_options,  # Use options instead of desired_capabilities
+# )
 
 
 # @app.route("/graphql", methods=["GET"])
@@ -95,8 +129,12 @@ def scrape_craigslist():
     # like top request is the most recent
     try:
         posts_list = return_posts()
-        for post in posts_list:
 
+        # Everything below is going to need to
+        # be changed and updated in to the schema
+        # to have, tilte, description, url, datetime - 4 fields
+
+        for post in posts_list:
             print("begining")
 
             print(post)
@@ -105,6 +143,7 @@ def scrape_craigslist():
             new_post = Post(
                 title=post["title"],
                 description=post["description"],
+                url=post["url"],
                 created_at=datetime.now(),
             )
             print("-------0o0-------")
@@ -113,6 +152,7 @@ def scrape_craigslist():
             db.session.add(new_post)
             # db.session.commit()
         db.session.commit()
+
         return (
             jsonify(
                 {
@@ -136,22 +176,58 @@ def return_posts():
         # print(response.text)
         soup = BeautifulSoup(response.text, "html.parser")
         posts_html = soup.find_all("a")  # , {"class": "result-title hdrlnk"})
-        print("------0-0-0-0----")
-        print("---------posts_html")
-        print(posts_html)
-        print("response.text")
-        print(response.text)
 
-        # basically here I could TRYYY to get the info out of "item" and stuff
-        post_list = [
-            {"title": clean(item.get_text()), "description": item.get("href")}
-            for item in posts_html
-        ]
+        print("\n\n----- START ---")
+        print("------z00z---posts_html")
 
-        # MAYBE HERE
-        # post_list = [{"item": item} for item in posts_html]
+        # ---------------------
+        #  RDY
+        post_list = []
+        for item in posts_html[2:7]:
+            # Extract title and description
+            title = clean(item.get_text())
+            url1 = item.get("href")
 
+            body = item.find("body")
+            # print(dir*)
+
+            response = requests.get(url1)
+            soup2 = BeautifulSoup(response.text, "html.parser")
+
+            date_paragraphs = soup2.find_all("p", id="display-date")
+
+            #######################################
+            posting_body = soup2.find("section", id="postingbody")
+            # Extract the text content of the section
+            if posting_body:
+                text_content = str(posting_body.get_text(separator=" ", strip=True))
+                text_content = text_content.replace("QR Code Link to This Post", "")
+                print
+            else:
+                text_content = None
+                print("No posting body found.")
+            #######################################
+
+            # date_paragraphs_time = str(soup2.find_all("p", id="display-date").find("time"))
+            date_paragraph = date_paragraphs[0]
+
+            time_tag = date_paragraph.find("time")
+            datetime_value = (
+                time_tag.get("datetime")
+                if time_tag and time_tag.has_attr("datetime")
+                else None
+            )
+
+            post_list.append(
+                {
+                    "title": title,
+                    "url": str(url1),
+                    "description": text_content,
+                    "created_at": datetime_value,
+                }
+            )
         return post_list
+
     except Exception as e:
         print(f"Error occurred: {e}")
         return []
@@ -159,7 +235,12 @@ def return_posts():
 
 def clean(text):
     # Helper function to clean text
-    return text.replace("\n", "").replace("$0", "").replace(" ", "")
+    ret_str = text.replace("\n", "").replace("$0", "")  # .replace(" ", "_")
+    raw_str = re.sub(r" {3,}", " | ", ret_str)
+    title = raw_str.split("|")[0].strip()
+    loc = raw_str.split("|")[1].strip()
+    ret_str = f"{title} ({loc})"
+    return ret_str
 
 
 if __name__ == "__main__":

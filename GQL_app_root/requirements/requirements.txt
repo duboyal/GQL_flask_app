@@ -9,5 +9,6 @@ flask-graphql
 selenium
 bs4
 graphql-core
+Flask-Migrate==3.1.0
  
 

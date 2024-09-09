@@ -32,6 +32,10 @@ class Post(db.Model):
     # pass the actual function to SQLAlchemy, not the result of calling the function at module load time.
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+    url = db.Column(
+        db.String(255), nullable=False
+    )  # URL field with a max length of 255 characters
+
     def to_dict(self):
         """Convert the SQLAlchemy object to a Python dictionary."""
         return {
@@ -40,6 +44,7 @@ class Post(db.Model):
             "description": self.description,
             # Formatting the datetime object to a string in the format of "mm-dd-yyyy".
             "created_at": self.created_at.strftime("%m-%d-%Y"),
+            "url": self.url,
         }
 
 
