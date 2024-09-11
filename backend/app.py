@@ -6,6 +6,9 @@ import re
 from flask import Response
 from ariadne.explorer import ExplorerPlayground
 
+from flask import Flask
+from flask_cors import CORS
+
 
 # selly
 from selenium.webdriver.common.by import By
@@ -42,9 +45,12 @@ from api_FLASK_GQL.mutations import (
 
 # Create an instance of the Flask application
 app = create_app()
+CORS(app)
 
 # GraphQL schema setup
-type_defs = load_schema_from_path("schema.graphql")
+type_defs = load_schema_from_path(
+    "api_FLASK_GQL/schema.graphql"
+)  # backend/api_FLASK_GQL/schema.graphql
 query = ObjectType("Query")
 mutation = ObjectType("Mutation")
 
