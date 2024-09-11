@@ -1,7 +1,8 @@
 #### some notes
 - new notes 
 
-- ok we will need to 
+- ok we will need to set up the env variables so that this will work when deployed on an EC2 or something
+- images for this should be in the last commit message essentially
 ---------------------------------------------------------------
 #### posts are newest to oldest 
 
