@@ -10,5 +10,6 @@ selenium
 bs4
 graphql-core
 Flask-Migrate==3.1.0
- 
+flask-cors==3.0.10
+
 

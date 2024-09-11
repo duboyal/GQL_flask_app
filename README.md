@@ -1,5 +1,8 @@
 #### some notes
+- new notes 
 
+- ok we will need to 
+---------------------------------------------------------------
 #### posts are newest to oldest 
 
 #### in init__ is where the database is but we will eventually make that a environment variable 

@@ -1,15 +1,38 @@
 version: '3.8'
+
 services:
-  web:
-    build: .
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - .:/usr/src/app
+      - ./backend:/app
     environment:
-      - NAME=World
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      # - FLASK_DEBUG=1
+    command: flask run --host=0.0.0.0 --port=8000 --reload
     depends_on:
       - selenium
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - app_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: npm start
+    depends_on:
+      - backend
     networks:
       - app-network
 
@@ -17,51 +40,19 @@ services:
     image: seleniarm/standalone-chromium:latest
     ports:
       - "4444:4444"
-    shm_size: 2g  # Set the shared memory size to 2GB
+    shm_size: 2g
     deploy:
       resources:
         limits:
-          cpus: '1.0'  # Allocate more CPU
-          memory: 2G    # Allocate more memory
+          cpus: '1.0'
+          memory: 2G
     networks:
       - app-network
+
+volumes:
+  app_node_modules:
+
 
 networks:
   app-network:
     driver: bridge
-
-
-
-
-# version: '3.8'
-# services:
-#   web:
-#     build: .
-#     ports:
-#       - "8000:8000"
-#     volumes:
-#       - .:/usr/src/app
-#     environment:
-#       - NAME=World
-#     depends_on:
-#       - selenium
-#     networks:
-#       - app-network
-
-#   selenium:
-#     image: seleniarm/standalone-chromium:latest
-#     ports:
-#       - "4444:4444"
-#     volumes:
-#       - /dev/shm:/dev/shm
-#     deploy:
-#       resources:
-#         limits:
-#           cpus: '0.5'
-#           memory: 512M
-#     networks:
-#       - app-network
-
-# networks:
-#   app-network:
-#     driver: bridge
