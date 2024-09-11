@@ -1,3 +1,5 @@
+this app scrapes craigslist through beautiful soup and you can interact with it through react app
+
 #### some notes
 - new notes 
 
