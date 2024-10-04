@@ -137,7 +137,7 @@ def return_posts():
         # ---------------------
 
         post_list = []
-        for item in posts_html[2:7]:
+        for item in posts_html[2:11]:
             # Extract title and description
             title = clean(item.get_text())
             url1 = item.get("href")
