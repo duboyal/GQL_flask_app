@@ -122,6 +122,53 @@ def scrape_craigslist():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/scrape-daya", methods=["GET"])
+def scrape_daya():
+    daya_list = return_daya()
+    print(daya_list)
+    print(f"daya_list: {daya_list}")
+
+
+# WIP RETURNING DAYA TILES
+def return_daya():
+    url = "https://dayayoga.studiogrowth.com/schedule?"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+    # posts_html = soup.find_all("a")  # , {"class": "result-title hdrlnk"})
+
+    unique_tags = {tag.name for tag in soup.find_all(True)}
+
+    print("unique_tags")
+    print(unique_tags)
+
+    # Find all <h3> tags
+    h3_tags = soup.find_all("h3")
+
+    # Find all <v-app> tags
+    v_app_tags = soup.find_all("v-app")
+
+    # Find all <section> tags
+    section_tags = soup.find_all("section")
+
+    # Find all <class-calendar> tags (though this seems like a class name or a custom tag)
+    class_calendar_tags = soup.find_all("class-calendar")
+
+    # daya_html = soup.find_all("")
+
+    # thing = daya_html
+    # print("daya_html")
+    # print(type(daya_html))
+    # print(daya_html)
+
+    # return daya_html
+
+    daya_list = []
+    for item in h3_tags:
+        daya_list.append(item)
+
+    return daya_list
+
+
 def return_posts():
     # Function to scrape Craigslist
     try:
