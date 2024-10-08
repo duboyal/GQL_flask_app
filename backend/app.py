@@ -9,6 +9,8 @@ from ariadne.explorer import ExplorerPlayground
 from flask import Flask
 from flask_cors import CORS
 
+import datetime
+
 
 # selly
 from selenium.webdriver.common.by import By
@@ -127,6 +129,13 @@ def scrape_daya():
     daya_list = return_daya()
     print(daya_list)
     print(f"daya_list: {daya_list}")
+    # Ensure you return a response
+    return jsonify(
+        {
+            "message": "Scraping completed successfully",
+            "data": daya_list,  # Assuming `daya_list` is the result of your scraping
+        }
+    )
 
 
 # WIP RETURNING DAYA TILES
@@ -141,6 +150,8 @@ def return_daya():
     print("unique_tags")
     print(unique_tags)
 
+    daya_html = soup.find_all(True)
+
     # Find all <h3> tags
     h3_tags = soup.find_all("h3")
 
@@ -153,6 +164,9 @@ def return_daya():
     # Find all <class-calendar> tags (though this seems like a class name or a custom tag)
     class_calendar_tags = soup.find_all("class-calendar")
 
+    print("\nclass_calendar_tags")
+    print(class_calendar_tags)
+
     # daya_html = soup.find_all("")
 
     # thing = daya_html
@@ -160,13 +174,72 @@ def return_daya():
     # print(type(daya_html))
     # print(daya_html)
 
-    # return daya_html
+    post_list = []
+    for item in class_calendar_tags:
+        # Extract title and description
+        # title = clean(item.get_text())
+        # url1 = item.get("href")
 
-    daya_list = []
-    for item in h3_tags:
-        daya_list.append(item)
+        # body = item.find("body")
+        # # print(dir*)
 
-    return daya_list
+        # response = requests.get(url1)
+        # soup2 = BeautifulSoup(response.text, "html.parser")
+
+        # date_paragraphs = soup2.find_all("p", id="display-date")
+
+        # #######################################
+        # posting_body = soup2.find("section", id="postingbody")
+        # # Extract the text content of the section
+        # if posting_body:
+        #     text_content = str(posting_body.get_text(separator=" ", strip=True))
+        #     text_content = text_content.replace("QR Code Link to This Post", "")
+        #     print
+        # else:
+        #     text_content = None
+        #     print("No posting body found.")
+        # #######################################
+
+        # # date_paragraphs_time = str(soup2.find_all("p", id="display-date").find("time"))
+        # date_paragraph = date_paragraphs[0]
+
+        # time_tag = date_paragraph.find("time")
+        # datetime_value = (
+        #     time_tag.get("datetime")
+        #     if time_tag and time_tag.has_attr("datetime")
+        #     else None
+        # )
+
+        post_list.append(
+            {
+                "title": "hello",
+                "url": "hello",
+                "description": "hello",
+                "created_at": "hello",
+            }
+        )
+
+        # post_list.append(
+        #     {
+        #         "title": str(type(item)),
+        #         "url": str(type(item)),
+        #         "description": str(type(item)),
+        #         "created_at": str(datetime.now()),
+        #     }
+        # )
+
+    print("\n___post_list")
+    print(post_list)
+    return post_list
+
+    return unique_tags
+
+    # later this
+    # daya_list = []
+    # for item in h3_tags:
+    #     daya_list.append(item)
+
+    # return daya_list
 
 
 def return_posts():
