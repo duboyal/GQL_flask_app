@@ -5,13 +5,22 @@ function App() {
     const [posts, setPosts] = useState([]);
 
     useEffect(() => {
-        fetch('http://localhost:8000/scrape-daya')
+        fetch('http://localhost:8000/scrape-craigslist') //http://localhost:8000/scrape-daya
             .then((response) => response.json())
             .then((data) => {
                 console.log('Received data:', data);  // This will show the entire response
                 // Access the posts inside the 'data.data' field
-                if (data && Array.isArray(data.data)) {
-                    setPosts(data.data);  // Access the 'data' field to get the posts
+
+                // BELOW will work for scrape-daya
+                // if (data && Array.isArray(data.data)) {
+                //     setPosts(data.data);  // Access the 'data' field to get the posts 
+
+
+                // BELOW will work for scrape-craigslist
+                if (data.success && data.posts_list) {
+                    setPosts(data.posts_list);  // Assign posts_list to your state
+
+
                 } else {
                     console.error('Invalid data format:', data);
                     setPosts([]); // Default to an empty array if data is invalid

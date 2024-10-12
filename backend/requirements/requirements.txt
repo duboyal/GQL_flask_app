@@ -6,6 +6,7 @@ requests
 psycopg2-binary
 flask-graphql
 #>=2.0.1
+boto3==1.18.0
 selenium
 bs4
 graphql-core

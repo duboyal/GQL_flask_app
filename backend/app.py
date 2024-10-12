@@ -1,6 +1,6 @@
 import requests
 from datetime import datetime
-from flask import jsonify
+from flask import jsonify, request
 import re
 
 from flask import Response
@@ -9,21 +9,7 @@ from ariadne.explorer import ExplorerPlayground
 from flask import Flask
 from flask_cors import CORS
 
-import datetime
-
-
-# selly
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import (
-    DesiredCapabilities,
-)
-
-from selenium.webdriver.chrome.options import Options
-
-
+import boto3
 from bs4 import BeautifulSoup
 from ariadne import (
     load_schema_from_path,
@@ -33,6 +19,9 @@ from ariadne import (
 )
 from ariadne.explorer import ExplorerApollo
 
+# Initialize DynamoDB connection
+dynamodb = boto3.resource("dynamodb", region_name="us-east-1")  # Or 'us-east-1'
+table = dynamodb.Table("CL_DynamoDBTable")
 
 # Import the create_app function and db object from the api_FLASK_GQL package
 from api_FLASK_GQL import create_app, db
@@ -50,9 +39,7 @@ app = create_app()
 CORS(app)
 
 # GraphQL schema setup
-type_defs = load_schema_from_path(
-    "api_FLASK_GQL/schema.graphql"
-)  # backend/api_FLASK_GQL/schema.graphql
+type_defs = load_schema_from_path("api_FLASK_GQL/schema.graphql")
 query = ObjectType("Query")
 mutation = ObjectType("Mutation")
 
@@ -74,6 +61,45 @@ def graphql_playground():
     # Use ExplorerPlayground and pass an argument '_' as the schema or a context string
     playground_html = ExplorerPlayground().html("_")
     return Response(playground_html, mimetype="text/html")
+
+
+# New Route to save posts to DynamoDB via POST request
+@app.route("/save-posts", methods=["POST"])
+def save_posts():
+    posts_list = request.json.get("posts_list", [])
+    added_posts = []
+    skipped_posts = []
+
+    for post in posts_list:
+        # Check if the post already exists in DynamoDB using its unique key (url)
+        response = table.get_item(Key={"url": post["url"]})
+
+        if "Item" not in response:
+            # Post doesn't exist, save it to DynamoDB
+            table.put_item(
+                Item={
+                    "url": post["url"],  # Unique key (Partition Key)
+                    "title": post["title"],
+                    "description": post["description"],
+                    "created_at": post.get(
+                        "created_at", datetime.utcnow().isoformat()
+                    ),  # Use existing or current timestamp
+                }
+            )
+            added_posts.append(post["url"])  # Track newly added posts
+        else:
+            skipped_posts.append(post["url"])  # Track duplicates (skipped)
+
+    return (
+        jsonify(
+            {
+                "message": "Processing complete",
+                "added_posts": added_posts,
+                "skipped_posts": skipped_posts,
+            }
+        ),
+        200,
+    )
 
 
 @app.route("/scrape-craigslist", methods=["GET"])
@@ -109,18 +135,27 @@ def scrape_craigslist():
         #     # db.session.commit()
         # db.session.commit()
 
-        return (
-            jsonify(
-                {
-                    "success": True,
-                    "message": "Posts added to database",
-                    "posts_list": posts_list,
-                }
-            ),
-            200,
+        # return (
+        #     jsonify(
+        #         {
+        #             "success": True,
+        #             "message": "Posts added to database",
+        #             "posts_list": posts_list,
+        #         }
+        #     ),
+        #     200,
+        # )
+
+        # Instead of saving posts to SQLAlchemy, we will send them to the /save-posts route
+        response = requests.post(
+            "http://localhost:8000/save-posts", json={"posts_list": posts_list}
         )
+
+        # Return the response from the save-posts route
+        return response.json(), response.status_code
+
     except Exception as e:
-        db.session.rollback()
+        # db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
 
 
